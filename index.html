@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Практическая работа: Асинхронность в JavaScript</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      .output { margin-top: 10px; padding: 10px; background: #f5f5f5; border: 1px solid #ccc; }
+      button { margin-right: 10px; cursor: pointer; padding: 6px 12px; }
+      #myElement { margin-top: 20px; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>Урок 4. Асинхронность в JavaScript (ECMAScript)</h1>
+    <p>Практическая работа: демонстрация fetch, промисов, async/await и setTimeout.</p>
+
+    <!-- Кнопки для запуска примеров -->
+    <button onclick="runGetUserData()">Задание 1: Получить данные пользователя</button>
+    <button onclick="runSaveUserData()">Задание 2: Отправить данные пользователя</button>
+    <button onclick="runChangeStyleDelayed()">Задание 3: Изменить стиль с задержкой</button>
+
+    <div class="output" id="log"></div>
+    <div id="myElement">Это тестовый элемент (изменится через 2 секунды)</div>
+
+    <script>
+      // --- ЭМУЛЯЦИЯ API (чтобы работало локально) ---
+      // В реальном проекте замените эти функции на настоящие fetch к серверу.
+      function mockFetch(url, options = {}) {
+        return new Promise((resolve, reject) => {
+          const method = (options.method || 'GET').toUpperCase();
+          const path = new URL(url).pathname;
+
+          if (method === 'GET' && path.startsWith('/users/')) {
+            const id = parseInt(path.split('/').pop(), 10);
+            if (id === 1) {
+              setTimeout(() => resolve({ ok: true, json: () => Promise.resolve({ id: 1, name: 'Alice', age: 30, email: 'alice@example.com' }) }), 300);
+            } else {
+              setTimeout(() => resolve({ ok: false, status: 404 }), 300);
+            }
+          } else if (method === 'POST' && path === '/users') {
+            setTimeout(() => resolve({ ok: true }), 300);
+          } else {
+            setTimeout(() => resolve({ ok: false, status: 500 }), 300);
+          }
+        });
+      }
+
+      // --- ЗАДАНИЕ 1: Получение данных о пользователе ---
+      async function getUserData(userId) {
+        try {
+          // Для реального API используйте: const response = await fetch(`https://api.example.com/users/${userId}`);
+          const response = await mockFetch(`/users/${userId}`);
+
+          if (!response.ok) {
+            throw new Error('User not found');
+          }
+
+          const userData = await response.json();
+          return userData;
+        } catch (error) {
+          return Promise.reject(error.message);
+        }
+      }
+
+      // --- ЗАДАНИЕ 2: Отправка данных на сервер ---
+      async function saveUserData(user) {
+        try {
+          // Для реального API используйте: const response = await fetch('https://api.example.com/users', { ... });
+          const response = await mockFetch('/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(user),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to save user data');
+          }
+          // Успех: ничего не возвращаем, промис разрешается
+        } catch (error) {
+          return Promise.reject(error.message);
+        }
+      }
+
+      // --- ЗАДАНИЕ 3: Изменение стиля элемента через задержку ---
+      function changeStyleDelayed(elementId, delay) {
+        setTimeout(() => {
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.style.color = 'red';
+            element.style.fontSize = '18px';
+            logMessage('Стиль элемента изменён через задержку.');
+          } else {
+            console.warn(`Элемент с id="${elementId}" не найден.`);
+            logMessage(`Элемент с id="${elementId}" не найден.`);
+          }
+        }, delay);
+      }
+
+      // --- Вспомогательные функции для вывода в UI ---
+      function logMessage(msg) {
+        const log = document.getElementById('log');
+        log.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+      }
+
+      // --- Обработчики кнопок ---
+      window.runGetUserData = async () => {
+        logMessage('Запрос данных пользователя (ID=1)...');
+        getUserData(1)
+          .then(user => {
+            logMessage('Успех: получен пользователь: ' + JSON.stringify(user));
+          })
+          .catch(error => {
+            logMessage('Ошибка: ' + error);
+          });
+      };
+
+      window.runSaveUserData = async () => {
+        const user = {
+          name: 'John Smith',
+          age: 30,
+          email: 'john@example.com',
+        };
+        logMessage('Отправка данных пользователя...');
+        saveUserData(user)
+          .then(() => {
+            logMessage('Данные успешно сохранены (эмуляция).');
+          })
+          .catch(error => {
+            logMessage('Ошибка при сохранении: ' + error);
+          });
+      };
+
+      window.runChangeStyleDelayed = () => {
+        logMessage('Запущена задержка для изменения стиля (2000 мс)...');
+        changeStyleDelayed('myElement', 2000);
+      };
+    </script>
+  </body>
+</html>
